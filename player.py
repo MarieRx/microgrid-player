@@ -19,34 +19,42 @@ class Player:
 
 	def set_scenario(self, scenario_data):
 		self.data = scenario_data
-		self.depart=list(scenario_data[(scenario_data["day"] == "01/01/2014")]["time_slot_dep"][:p.nb_slow + p.nb_fast])
-		self.arr = list(scenario_data[(scenario_data["day"] == "01/01/2014")]["time_slot_arr"][:p.nb_slow + p.nb_fast])
+		# depart et arr contiennent respectivement la liste des heures de départ et d'arrivée des véhicules à la date d
+		d="01/01/2014"
+		self.depart=list(scenario_data[(scenario_data["day"] == d)]["time_slot_dep"][:p.nb_slow + p.nb_fast])
+		self.arr = list(scenario_data[(scenario_data["day"] == d)]["time_slot_arr"][:p.nb_slow + p.nb_fast])
 
 	def set_prices(self, prices):
 		self.prices = prices
 
 	def compute_all_load(self):
 		load = np.zeros(self.horizon)
+		# l est une liste temporaire, on reprend ses valeurs et on les réordonne avant de les mettre dans load
+
+		#on construit l en remplissant d'abord les voitures "slow" puis les "fast" pour chaque pas de temps
 		l=np.zeros(self.horizon)
+
+		#chargement prend en compte le chargement en cours pour chacun des véhicules
 		chargement=np.zeros(self.nb_slow+self.nb_fast)
+
 		for time in range(self.horizon):
+			#consom<40
 			consom=0
+
 			for i in range(self.nb_slow):
 				plus = self.rho_c * min(self.pslow, min((10 - chargement[i])/self.rho_c, 40 - consom))
 				chargement[i] += plus
 				consom += plus
 
-
 			for i in range(self.nb_slow,self.nb_slow+self.nb_fast):
 				plus=self.rho_c*min(self.pfast,min((10-chargement[i])/self.rho_c,40-consom))
 				chargement[i]+=plus
 				consom+=plus
-
 			l[time]=consom
-		cpt=self.horizon-1
+
+		#on réordonne les consomations en mettant à chaque fois la conso la plus importante sur le prix le faible restant
 		m = np.min(self.depart)
 		copie_prix=self.prices[:m].copy()
-		arg_max=0
 		cpt=0
 		while cpt<m:
 			arg_min = np.argmin(copie_prix)
@@ -78,9 +86,9 @@ p.__init__()
 p.set_scenario(f)
 p.set_prices(random_lambda)
 
-
 l=p.compute_all_load()
 
+#fonction de cout qui ne prend pas encore en compte les amendes si les voitures ne sont pas chargées à temps
 def cout(p,l):
 	c=0
 	for time in range(48):

@@ -46,7 +46,6 @@ class Player:
 		cpt=self.horizon-1
 		m = np.min(self.depart)
 		copie_prix=self.prices[:m].copy()
-		print(copie_prix)
 		arg_max=0
 		cpt=0
 		while cpt<m:
@@ -57,8 +56,7 @@ class Player:
 			l[arg_max] = 0
 			cpt+=1
 			#load[time] = self.compute_load(time)
-		print(copie_prix)
-		print(self.prices)
+		print(load)
 		return load
 
 	def take_decision(self, time):
@@ -79,10 +77,10 @@ p=Player()
 p.__init__()
 p.set_scenario(f)
 p.set_prices(random_lambda)
-print(p.prices)
+
 
 l=p.compute_all_load()
-print(l)
+
 def cout(p,l):
 	c=0
 	for time in range(48):

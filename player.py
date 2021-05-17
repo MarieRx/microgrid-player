@@ -41,6 +41,71 @@ class Player:
 					p[t][i]=0
 		print(p)
 
+		load = np.zeros(self.horizon)
+		# l est une liste temporaire, on reprend ses valeurs et on les réordonne avant de les mettre dans load
+
+		# on construit l en remplissant d'abord les voitures "slow" puis les "fast" pour chaque pas de temps
+		l = np.zeros(self.horizon)
+
+		# chargement prend en compte le chargement en cours pour chacun des véhicules
+		chargement = np.zeros(self.nb_slow + self.nb_fast)
+
+		for time in range(self.horizon):
+			# consom<40
+			consom = 0
+
+			for i in range(self.nb_slow):
+				plus = self.rho_c * min(self.pslow, min((10 - chargement[i]) / self.rho_c, 40 - consom)) * self.delta_t
+				chargement[i] += plus
+				consom += plus
+
+			for i in range(self.nb_slow, self.nb_slow + self.nb_fast):
+				plus = self.rho_c * min(self.pfast, min((10 - chargement[i]) / self.rho_c, 40 - consom)) * self.delta_t
+				chargement[i] += plus
+				consom += plus
+			l[time] = consom
+
+		# on réordonne les consomations en mettant à chaque fois la conso la plus importante sur le prix le faible restant
+		m = np.min(self.depart) * 2
+		copie_prix = self.prices[:m].copy()
+		cpt = 0
+		while cpt < m:
+			arg_min = np.argmin(copie_prix)
+			arg_max = np.argmax(l)
+			load[arg_min] = l[arg_max]
+			copie_prix[arg_min] = np.inf
+			l[arg_max] = 0
+			cpt += 1
+		# load[time] = self.compute_load(time)
+		for i in range(self.nb_slow + self.nb_fast):
+			chargement[i] -= 4
+		for time in range(self.horizon):
+			# consom<40
+			consom = 0
+
+			for i in range(self.nb_slow):
+				plus = min(self.pslow, min(chargement[i] * self.rho_d, 40 - consom)) * self.delta_t / self.rho_d
+				chargement[i] -= plus
+				consom += plus
+
+			for i in range(self.nb_slow, self.nb_slow + self.nb_fast):
+				plus = min(self.pfast, min(chargement[i] * self.rho_d, 40 - consom)) * self.delta_t / self.rho_d
+				chargement[i] -= plus
+				consom += plus
+			l[time] = consom
+		# on réordonne les consomations en mettant à chaque fois la conso la plus importante sur le prix le faible restant
+		m = np.max(self.arr) * 2
+		copie_prix = self.prices[m:].copy()
+		cpt = m
+		while cpt < self.horizon:
+			arg_max_p = np.argmax(copie_prix) + m
+			arg_max = np.argmax(l)
+			load[arg_max_p] = -l[arg_max]
+			copie_prix[arg_max_p - m] = -np.inf
+			l[arg_max] = 0
+			cpt += 1
+		# print(load)
+
 
 
 		return load
@@ -77,70 +142,3 @@ def cout(p,l):
 	return c
 #print(cout(p.prices,l))
 
-"""
-
-
-load = np.zeros(self.horizon)
-# l est une liste temporaire, on reprend ses valeurs et on les réordonne avant de les mettre dans load
-
-#on construit l en remplissant d'abord les voitures "slow" puis les "fast" pour chaque pas de temps
-l=np.zeros(self.horizon)
-
-#chargement prend en compte le chargement en cours pour chacun des véhicules
-chargement=np.zeros(self.nb_slow+self.nb_fast)
-
-for time in range(self.horizon):
-	#consom<40
-	consom=0
-
-	for i in range(self.nb_slow):
-		plus = self.rho_c * min(self.pslow, min((10 - chargement[i])/self.rho_c, 40 - consom))*self.delta_t
-		chargement[i] += plus
-		consom += plus
-
-	for i in range(self.nb_slow,self.nb_slow+self.nb_fast):
-		plus=self.rho_c*min(self.pfast,min((10-chargement[i])/self.rho_c,40-consom))*self.delta_t
-		chargement[i]+=plus
-		consom+=plus
-	l[time]=consom
-
-#on réordonne les consomations en mettant à chaque fois la conso la plus importante sur le prix le faible restant
-m = np.min(self.depart)*2
-copie_prix=self.prices[:m].copy()
-cpt=0
-while cpt<m:
-	arg_min = np.argmin(copie_prix)
-	arg_max=np.argmax(l)
-	load[arg_min]=l[arg_max]
-	copie_prix[arg_min] = np.inf
-	l[arg_max] = 0
-	cpt+=1
-	#load[time] = self.compute_load(time)
-for i in range(self.nb_slow+self.nb_fast):
-	chargement[i]-=4
-for time in range(self.horizon):
-	#consom<40
-	consom=0
-
-	for i in range(self.nb_slow):
-		plus =  min(self.pslow, min( chargement[i]*self.rho_d, 40 - consom))*self.delta_t/self.rho_d
-		chargement[i] -= plus
-		consom += plus
-
-	for i in range(self.nb_slow,self.nb_slow+self.nb_fast):
-		plus=min(self.pfast,min(chargement[i]*self.rho_d,40-consom))*self.delta_t/self.rho_d
-		chargement[i]-=plus
-		consom+=plus
-	l[time]=consom
-# on réordonne les consomations en mettant à chaque fois la conso la plus importante sur le prix le faible restant
-m = np.max(self.arr)*2
-copie_prix = self.prices[m:].copy()
-cpt = m
-while cpt < self.horizon:
-	arg_max_p = np.argmax(copie_prix)+m
-	arg_max = np.argmax(l)
-	load[arg_max_p] = -l[arg_max]
-	copie_prix[arg_max_p-m] = -np.inf
-	l[arg_max] = 0
-	cpt += 1
-#print(load)"""

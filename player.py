@@ -39,7 +39,7 @@ class Player:
 					p[t][i]=1
 				else:
 					p[t][i]=0
-		print(p)
+		#print(p)
 
 		load = np.zeros(self.horizon)
 		# l est une liste temporaire, on reprend ses valeurs et on les réordonne avant de les mettre dans load

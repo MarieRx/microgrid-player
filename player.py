@@ -28,7 +28,7 @@ class Player:
 
 	def set_prices(self, prices):
 		self.prices = prices
-		print(prices)
+		#print(prices)
 
 	def compute_all_load(self):
 		load = np.zeros(self.horizon)
@@ -94,7 +94,7 @@ class Player:
 			copie_prix[arg_max_p-m] = -np.inf
 			l[arg_max] = 0
 			cpt += 1
-		print(load)
+		#print(load)
 		return load
 
 	def take_decision(self, time):

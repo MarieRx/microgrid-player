@@ -88,7 +88,7 @@ class Player:
 			load[i]=l_V2G[0][i].varValue+l_V2G[1][i].varValue+l_V2G[2][i].varValue+l_V2G[3][i].varValue
 		#for v in lp.variables():
 		#	print(v.name, "=", v.varValue)
-		print(load)
+		#print(load)
 		return load
 
 	def take_decision(self, time):
@@ -104,22 +104,22 @@ class Player:
 		pass
 
 
-#if __name__ == " __main__ ":
-f=pd.read_csv("ev_scenarios.csv",";")
-p=Player()
-p.__init__()
-p.set_scenario(f)
-p.set_prices(random_lambda)
+if __name__ == " __main__ ":
+	f=pd.read_csv("ev_scenarios.csv",";")
+	p=Player()
+	p.__init__()
+	p.set_scenario(f)
+	p.set_prices(random_lambda)
 
-l=p.compute_all_load()
+	l=p.compute_all_load()
 
-#fonction de cout qui ne prend pas encore en compte les amendes si les voitures ne sont pas chargées à temps
-def cout(p,l):
-	c=0
-	for time in range(48):
-		c+=l[time]*p[time]
-	return c
-#print(cout(p.prices,l))
+	#fonction de cout qui ne prend pas encore en compte les amendes si les voitures ne sont pas chargées à temps
+	def cout(p,l):
+		c=0
+		for time in range(48):
+			c+=l[time]*p[time]
+		return c
+	#print(cout(p.prices,l))
 
 """
 p=np.zeros((self.horizon,self.nb_fast+self.nb_slow))

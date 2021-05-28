@@ -1,7 +1,7 @@
 # python 3
 # this class combines all basic features of a generic player
 import numpy as np
-import pandas as pa
+import pandas as pd
 import pulp
 random_lambda = np.random.rand(48)
 class Player:
@@ -18,6 +18,7 @@ class Player:
 		self.rho_c=0.95
 		self.delta_t=0.5
 		self.rho_d=0.95
+		self.pmax_station=40
 
 
 	def set_scenario(self, scenario_data):
@@ -32,7 +33,96 @@ class Player:
 		#print(prices)
 
 	def compute_all_load(self):
-		p=np.zeros((self.horizon,self.nb_fast+self.nb_slow))
+		lp = pulp.LpProblem("opti_station", pulp.LpMinimize)
+		lp.setSolver()
+		# création des variables:
+		l_V2G = {}
+		temp={}
+		for i in range(4):
+			l_V2G[i] = {}
+			temp[i]={}
+			for j in range(48):
+				l_V2G[i][j] = pulp.LpVariable("l_V2G" + str(i) + "_" + str(j))
+				temp[i][j] = pulp.LpVariable("temp" + str(i) + "_" + str(j))
+		charge= {}
+		for i in range(4):
+			charge[i] = {}
+			for j in range(48):
+				charge[i][j] = pulp.LpVariable("charge" + str(i) + "_" + str(j))
+
+		# contraintes:
+
+		for i in range(4):
+			for t in range(47):
+				lp+=temp[i][t]>=0,"temp_sup"+str(i)+str(t)
+				lp+=temp[i][t]>=l_V2G[i][t],"temp_inf"+str(i)+str(t)
+				#lp += charge[i][t + 1] - charge[i][t] - self.rho_c * self.delta_t * temp[i][t]== 0, "contraintechargement"+str(i)+str(t)
+				lp += charge[i][t + 1] - charge[i][t] - self.rho_c * self.delta_t * temp[i][t]+ (1 / self.rho_d) * (temp[i][t]-l_V2G[i][t]) == 0,  "contraintechargement"+str(i)+str(t)
+
+		for t in range(48):
+			for i in range(2):
+				lp += l_V2G[i][t] - self.pslow <= 0, "chargemaxvoiture_slow"+str(i)+str(t)
+				lp += l_V2G[i][t] + self.pslow >= 0, "chargemaxvoiture_slow_abs" + str(i) + str(t)
+			for i in range(2,4):
+				lp += l_V2G[i][t] - self.pfast <= 0, "chargemaxvoiture_fast" + str(i+self.nb_slow) + str(t)
+				lp += l_V2G[i][t] + self.pfast >= 0, "chargemaxvoiture_fast_abs" + str(i+self.nb_slow)  + str(t)
+		for t in range(48):
+			lp += pulp.lpSum(l_V2G[i][t] for i in range(4))-self.pmax_station <= 0, "chargemaxstation"+str(t)
+			lp += pulp.lpSum(l_V2G[i][t] for i in range(4)) + self.pmax_station >= 0, "chargemaxstationinf" + str(t)
+
+
+		for i in range(4):
+			for t in range(self.depart[i]*2,self.arr[i]*2):
+				lp+=charge[i][t]==0,"rienenjournee"+str(i)+str(t)
+				lp+=l_V2G[i][t]==0,"rienen journee2"+str(i)+str(t)
+			for t in range(self.arr[i]*2-1,self.horizon):
+				lp+=l_V2G[i][t]<=0,"reinjection le soir"+str(t)+str(i)
+		for i in range(4):
+			lp += charge[i][self.depart[i]*2] - 4 - charge[i][self.arr[i]*2] == 0, "contraintedecharge"+str(i)
+			lp += charge[i][0] == 0, "contraintedechargeminuit"+str(i)
+			lp += self.capacite - charge[i][self.depart[i]*2] <= 0, "contraintechargedepart"+str(i)
+		lp.setObjective(pulp.lpSum((pulp.lpSum(self.prices[t] * l_V2G[i][t] for i in range(4)) for t in range(48))))
+		lp.solve()
+		load=np.zeros(self.horizon)
+		for i in range(self.horizon):
+			load[i]=l_V2G[0][i].varValue+l_V2G[1][i].varValue+l_V2G[2][i].varValue+l_V2G[3][i].varValue
+		#for v in lp.variables():
+		#	print(v.name, "=", v.varValue)
+		print(load)
+		return load
+
+	def take_decision(self, time):
+		# TO BE COMPLETED
+		return 0
+
+	def compute_load(self, time):
+		load = self.take_decision(time)
+		return load
+
+	def reset(self):
+		# reset all observed data
+		pass
+
+
+#if __name__ == " __main__ ":
+f=pd.read_csv("ev_scenarios.csv",";")
+p=Player()
+p.__init__()
+p.set_scenario(f)
+p.set_prices(random_lambda)
+
+l=p.compute_all_load()
+
+#fonction de cout qui ne prend pas encore en compte les amendes si les voitures ne sont pas chargées à temps
+def cout(p,l):
+	c=0
+	for time in range(48):
+		c+=l[time]*p[time]
+	return c
+#print(cout(p.prices,l))
+
+"""
+p=np.zeros((self.horizon,self.nb_fast+self.nb_slow))
 		for t in range(self.horizon):
 			for i in range (self.nb_fast+self.nb_slow):
 				if t<self.depart[i]*2 or t>self.arr[i]*2:
@@ -105,40 +195,4 @@ class Player:
 			l[arg_max] = 0
 			cpt += 1
 		# print(load)
-
-
-
-		return load
-
-	def take_decision(self, time):
-		# TO BE COMPLETED
-		return 0
-
-	def compute_load(self, time):
-		load = self.take_decision(time)
-
-		return load
-
-	def reset(self):
-		# reset all observed data
-		pass
-
-
-
-
-f=pa.read_csv("ev_scenarios.csv",";")
-p=Player()
-p.__init__()
-p.set_scenario(f)
-p.set_prices(random_lambda)
-
-l=p.compute_all_load()
-
-#fonction de cout qui ne prend pas encore en compte les amendes si les voitures ne sont pas chargées à temps
-def cout(p,l):
-	c=0
-	for time in range(48):
-		c+=l[time]*p[time]
-	return c
-#print(cout(p.prices,l))
-
+"""

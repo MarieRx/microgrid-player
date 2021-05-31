@@ -58,7 +58,7 @@ class Player:
 				lp+=temp[i][t]>=l_V2G[i][t],"temp_inf"+str(i)+str(t)
 
 				#lp += charge[i][t + 1] - charge[i][t] - self.rho_c * self.delta_t * temp[i][t]== 0, "contraintechargement"+str(i)+str(t)
-				lp += charge[i][t + 1] - charge[i][t] - self.rho_c * self.delta_t * temp[i][t]+ (1 / self.rho_d) * (temp[i][t]-l_V2G[i][t]) == 0,  "contraintechargement"+str(i)+str(t)
+				lp += charge[i][t + 1] - charge[i][t] - self.rho_c * self.delta_t * temp[i][t]+ (1 / self.rho_d) *self.delta_t* (temp[i][t]-l_V2G[i][t]) == 0,  "contraintechargement"+str(i)+str(t)
 
 		for t in range(48):
 			for i in range(2):
